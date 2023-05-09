@@ -1,7 +1,6 @@
 package org.random;
 
 import com.github.javafaker.Faker;
-import lombok.Value;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -17,17 +16,28 @@ public class GenerateRandom {
     private GenerateRandom() {
     }
 
-    public static int randomPeriod(int begin, int end) {
+    public static int randomIntInRange(int begin, int end) {
         return random.nextInt(end + 1 - begin) + begin;
     }
 
-    public static char randomSpecSymbol() {
-        String specSymbols = "!@#$%^&*()_+~`;:.,<>/|?№";
+    public static String randomSymbolsInString(String str, int countSymbols) {
+        if (countSymbols < 1) {
+            countSymbols = 1;
+        }
+        StringBuilder result = new StringBuilder();
 
-        return specSymbols.charAt(random.nextInt(specSymbols.length()));
+        for (int i = 0; i < countSymbols; i++) {
+            result.append(str.charAt(random.nextInt(str.length())));
+        }
+
+        return result.toString();
     }
 
-    public static char randomSymbol(String locale) {
+    public static String randomSpecSymbol(int countSymbols) {
+        return randomSymbolsInString("!@#$%^&*()_+~`;:.,<>/|?№", countSymbols);
+    }
+
+    public static String randomLetter(String locale, int countSymbols) {
         String symbols;
         if (locale.equals("ru") || locale.equals("RU") || locale.equals("ру")) {
             symbols = "йцукенгшщзхъфывапролджэячсмитьбюёЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮЁ";
@@ -35,7 +45,7 @@ public class GenerateRandom {
             symbols = "qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM";
         }
 
-        return symbols.charAt(random.nextInt(symbols.length()));
+        return randomSymbolsInString(symbols, countSymbols);
     }
 
     public static String generateDate(int plusDaysToCurrent, String pattern) {
@@ -61,88 +71,134 @@ public class GenerateRandom {
         return faker.address().city();
     }
 
+    public static String deleteSymbolsInString(String str, String exclude) {
+        if (exclude.length() == 0) {
+            return str;
+        }
+
+        String[] charInExclude = exclude.split("", exclude.length());
+        for (String s : charInExclude) {
+            if ("ё".equals(s)) {
+                str = str.replaceAll(s.toLowerCase(), "е");
+            } else if ("Ё".equals(s)) {
+                str = str.replaceAll(s.toLowerCase(), "Е");
+            } else {
+                str = str.replaceAll(s.toLowerCase(), "").replaceAll(s.toUpperCase(), "");
+            }
+        }
+        return str;
+    }
+
+    public static String generateFullName(String locale, String exclude) {
+        return deleteSymbolsInString(new Faker(new Locale(locale)).name().fullName(), exclude);
+    }
+
     public static String generateFullName(String locale) {
-        faker = new Faker(new Locale(locale));
-        return faker.name().fullName().replaceAll("ё", "е").replaceAll("Ё", "Е");
+        return deleteSymbolsInString(new Faker(new Locale(locale)).name().fullName(), "");
+    }
+
+    public static String generateFirstName(String locale, String exclude) {
+        return deleteSymbolsInString(new Faker(new Locale(locale)).name().firstName(), exclude);
     }
 
     public static String generateFirstName(String locale) {
-        faker = new Faker(new Locale(locale));
-        return faker.name().firstName().replaceAll("ё", "е").replaceAll("Ё", "Е");
+        return deleteSymbolsInString(new Faker(new Locale(locale)).name().firstName(), "");
+    }
+
+    public static String generateLastName(String locale, String exclude) {
+        return deleteSymbolsInString(new Faker(new Locale(locale)).name().lastName(), exclude);
     }
 
     public static String generateLastName(String locale) {
         faker = new Faker(new Locale(locale));
-        return faker.name().lastName().replaceAll("ё", "е").replaceAll("Ё", "Е");
+        return deleteSymbolsInString(faker.name().lastName(), "");
+    }
+
+    public static String generateFirstAndLastNames(String locale, String delimiter, String exclude) {
+        return generateFirstName(locale, exclude) + delimiter + generateLastName(locale, exclude);
+    }
+
+    public static String generateFirstAndLastNames(String locale, String exclude) {
+        return generateFirstName(locale, exclude) + " " + generateLastName(locale, exclude);
     }
 
     public static String generateFirstAndLastNames(String locale) {
-        return generateFirstName(locale) + " " + generateLastName(locale);
+        return generateFirstName(locale, "") + " " + generateLastName(locale, "");
+    }
+
+    public static String generatePhone(String locale, String exclude) {
+        return deleteSymbolsInString(new Faker(new Locale(locale)).phoneNumber().phoneNumber(), exclude);
     }
 
     public static String generatePhone(String locale) {
-        faker = new Faker(new Locale(locale));
-
-        return faker.phoneNumber().phoneNumber()
-                .replaceAll("\\)", "")
-                .replaceAll("\\(", "")
-                .replaceAll("-", "");
+        return deleteSymbolsInString(new Faker(new Locale(locale)).phoneNumber().phoneNumber(), "-()");
     }
+
     public static String generateLogin(String locale) {
         return generateFirstName(locale) + generateLastName(locale);
     }
 
     public static String generateEmail() {
-        faker = new Faker(new Locale("en"));
-        return faker.internet().emailAddress();
+        return new Faker(new Locale("en")).internet().emailAddress();
     }
 
-    public static String generatePassword(int lengthIs8AndMore) {
+    public static String generatePassword(int lengthIs8AndMore, String exclude) {
         if (lengthIs8AndMore < 8) {
             lengthIs8AndMore = 8;
         }
         StringBuilder password = new StringBuilder();
-        String lowerLetters = "qwertyuiopasdfghjklzxcvbnm";
+        String lowerLetters = deleteSymbolsInString("qwertyuiopasdfghjklzxcvbnm", exclude);
         String upperLetters = lowerLetters.toUpperCase();
-        String digitChars = "1234567890";
-        String specChars = "!?@#$%^&*-+";
+        String digitChars = deleteSymbolsInString("1234567890", exclude);
+        String specChars = deleteSymbolsInString("!?@#$%^&*-+", exclude);
         String allLetters = lowerLetters + upperLetters;
         String allChars = lowerLetters + upperLetters + digitChars + specChars;
 
         char[] charArray = new char[lengthIs8AndMore - 4];
 
-        for(int i = 0; i < 3; i++){
+        //first two symbols are any letters
+        for (int i = 0; i < 2; i++) {
             password.append(allLetters.charAt(random.nextInt(allLetters.length())));
         }
-        for(int i = 3; i < 5; i++){
+
+        //next two symbols are lower letters
+        for (int i = 2; i < 4; i++) {
             password.append(lowerLetters.charAt(random.nextInt(lowerLetters.length())));
         }
 
+        //must have a spec symbol, a digit and an upper letter
         charArray[0] = specChars.charAt(random.nextInt(specChars.length()));
         charArray[1] = digitChars.charAt(random.nextInt(digitChars.length()));
         charArray[2] = upperLetters.charAt(random.nextInt(upperLetters.length()));
 
-        for(int i = 3; i < charArray.length; i++){
+        //everything else is filled with any symbols
+        for (int i = 3; i < charArray.length; i++) {
             charArray[i] = allChars.charAt(random.nextInt(allChars.length()));
         }
-        int count = 0;
-        while (count < lengthIs8AndMore - 4) {
-            int numberInCharArray = random.nextInt(charArray.length);
-            password.append(charArray[numberInCharArray]);
-            count++;
+
+        //mixing the element in the charArray
+        for (int i = 0; i < lengthIs8AndMore - 4; i++) {
+            int numberOfRandomSymbolInCharArray = random.nextInt(charArray.length);
+            password.append(charArray[numberOfRandomSymbolInCharArray]);
             char[] tempForDeleteUsedChar = new char[charArray.length - 1];
-            int newNumberInCharArray = 0;
-            for(int i = 0; i < charArray.length; i++){
-                if(i != numberInCharArray){
-                    tempForDeleteUsedChar[newNumberInCharArray] = charArray[i];
-                    newNumberInCharArray++;
+            int numberInTemp = 0;
+
+            //delete used element from the charArray
+            for (int j = 0; j < charArray.length; j++) {
+                if (j != numberOfRandomSymbolInCharArray) {
+                    tempForDeleteUsedChar[numberInTemp] = charArray[j];
+                    numberInTemp++;
                 }
             }
             charArray = tempForDeleteUsedChar;
         }
         return password.toString();
     }
+    public static String generatePassword(int lengthIs8AndMore) {
+        return generatePassword(lengthIs8AndMore, "");
+    }
+
     public static String generatePassword() {
-        return generatePassword(8);
+        return generatePassword(8, "");
     }
 }
